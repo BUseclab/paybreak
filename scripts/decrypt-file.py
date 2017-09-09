@@ -172,8 +172,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', required=True,
         help="Required. Specify the encrypted file to decrypt.")
-    parser.add_argument('-k', '--key_blobs', required=True, default='keys.txt',
+    parser.add_argument('-k', '--key_blobs', required=False, default='keys.txt',
         help="Specify where the list of potential keys is, default=keys.txt")
+    parser.add_argument('-k0', '--key_blob', required=False,
+        help="Specify a single key to use.")
     parser.add_argument('-o', '--out', default=sys.stdout,
         help="Specify where you want the decrypted file to go, default=stdout")
     parser.add_argument('-m', '--mode', default='cbc', choices=['cbc', 'ofb', 'ecb'],
@@ -192,6 +194,10 @@ if __name__ == '__main__':
         help="Decrypt a tox ransom file.")
 
     args = parser.parse_args()
+
+    if (not args.key_blobs and not args.key_blob):
+        print("You must provide either a --key_blob xor --key_blobs")
+        sys.exit(3)
 
     if args.mode == 'cbc':
         args.mode = AES.MODE_CBC
@@ -215,7 +221,11 @@ if __name__ == '__main__':
         encrypted_data = encrypt_file(args.file, key_val, args.mode, args.iv)
         sys.exit(1)
 
-    key_blobs = set([line.rstrip('\r\n') for line in open(args.key_blobs)])
+    if args.key_blob:
+        key_blobs = [args.key_blob]
+    else:
+        key_blobs = set([line.rstrip('\r\n') for line in open(args.key_blobs)])
+    
     count = 1
     for key_blob in key_blobs:
         if main(key_blob):

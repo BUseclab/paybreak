@@ -87,14 +87,14 @@ BOOL kEncrypt(LPTSTR pszSourceFile, LPTSTR pszDestinationFile, LPTSTR pszPasswor
     }
 
     if(!pszPassword || !pszPassword[0]) {  // No password given
-        if (GenSessionKeyWithRandom(hCryptProv, ENCRYPT_ALGORITHM, KEYLENGTH, hKey)) {
+        if (GenSessionKeyWithRandom(hCryptProv, ENCRYPT_ALGORITHM, KEYLENGTH, CRYPT_EXPORTABLE, hKey)) {
             _tprintf(TEXT("[GOOD] Generated random session key \n"));
         } else {
             MyHandleError(TEXT("[FAIL] Random session not generated. \n"), GetLastError());
             return FALSE;
         }
     } else { 
-        if (GenSessionKeyWithPassword(pszPassword, hCryptProv, ENCRYPT_ALGORITHM, KEYLENGTH,
+        if (GenSessionKeyWithPassword(pszPassword, hCryptProv, ENCRYPT_ALGORITHM, KEYLENGTH, CRYPT_EXPORTABLE,
          hHash, hKey)) {
             _tprintf(TEXT("[GOOD] Generated passworded session key \n"));
         } else {

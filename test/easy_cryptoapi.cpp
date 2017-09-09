@@ -9,7 +9,6 @@
 * Refer to MSDN CryptoAPI documentation for more information.
 *
 * NOTE:
-*   + Sessions keys are always set to CRYPT_EXPORTABLE.
 *   + Some functions write files for you. This behaviour might be annoying.
 *
 * TODO:

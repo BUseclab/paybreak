@@ -28,7 +28,7 @@ cl ./test/kEncrypt.cpp ./test/easy_cryptoapi.cpp
 kEncrypt.exe ./test/test1.txt test1.enc no
 
 # Check the log and extract the key data
-grep "C:/CryptoHookLog.dll" ExfilKeyData
+grep ExfilKeyData "C:/CryptoHookLog.dll"
 
 # Decrypt using the extracted data and compare to the original (should be same)
 ./scripts/decrypt-file.py -f test1.enc -o test1.out -x <keydata>

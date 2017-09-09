@@ -98,47 +98,48 @@ BOOL WINAPI Fake_CryptSetKeyParam(HCRYPTKEY hKey, DWORD dwParam, BYTE* pbData, D
 
 }
 
-BOOL WINAPI Fake_CryptDestroyKey(HCRYPTKEY hKey) {
-    FILE *fd = fopen("C:\\CryptoHookLog.dll", "a");
-    std::string mytime = CurrentTime();
+// BOOL WINAPI Fake_CryptDestroyKey(HCRYPTKEY hKey) {
+//     FILE *fd = fopen("C:\\CryptoHookLog.dll", "a");
+//     std::string mytime = CurrentTime();
 
-    fprintf(fd, "[CryptDestroyKey] %s\n", mytime.c_str());
+//     fprintf(fd, "[CryptDestroyKey] %s\n", mytime.c_str());
 
-    DWORD dwCount;
-    BYTE pbData2[16];
-    CryptGetKeyParam(hKey, KP_IV, NULL, &dwCount, 0); // Get size of KP_IV
-    CryptGetKeyParam(hKey, KP_IV, pbData2, &dwCount, 0); // Get KP_IV data
-    fprintf(fd, "KP_IV =  ");
-    for (int i = 0 ; i < dwCount ; i++) {
-        fprintf(fd, "%02x ",pbData2[i]);
-    }
+//     // TODO(eugenek): This is broken, for some reason dwCount doesn't get updated correctly.
+//     // DWORD dwCount;
+//     // BYTE pbData2[16];
+//     // CryptGetKeyParam(hKey, KP_IV, NULL, &dwCount, 0); // Get size of KP_IV    
+//     // CryptGetKeyParam(hKey, KP_IV, pbData2, &dwCount, 0); // Get KP_IV data
+//     // fprintf(fd, "KP_IV =  ");
+//     // for (int i = 0 ; i < dwCount ; i++) {
+//     //     fprintf(fd, "%02x ",pbData2[i]);
+//     // }
 
-    if (recursive == FALSE) {
-        recursive = TRUE;
+//     if (recursive == FALSE) {
+//         recursive = TRUE;
 
-        Real_CryptExportKey(hKey, NULL, PLAINTEXTKEYBLOB, 0, NULL, &g_dwKeyBlobLen_Exfil);
-        fprintf(fd, "\t ExfilKeyLen = %d\n", g_dwKeyBlobLen_Exfil);
+//         Real_CryptExportKey(hKey, NULL, PLAINTEXTKEYBLOB, 0, NULL, &g_dwKeyBlobLen_Exfil);
+//         fprintf(fd, "\t ExfilKeyLen = %d\n", g_dwKeyBlobLen_Exfil);
         
-        g_pbKeyBlob_Exfil = (BYTE*)malloc(g_dwKeyBlobLen_Exfil);
+//         g_pbKeyBlob_Exfil = (BYTE*)malloc(g_dwKeyBlobLen_Exfil);
     
-        // Get the export blob
-        if (!Real_CryptExportKey(hKey, NULL, PLAINTEXTKEYBLOB, 0, g_pbKeyBlob_Exfil, &g_dwKeyBlobLen_Exfil)){
-            MyHandleError(TEXT("[FAIL] Exfil key data failed \n"), GetLastError());
-            fprintf(fd, "[FAIL] no-alloca Exfil key data failed \n");
-        }
+//         // Get the export blob
+//         if (!Real_CryptExportKey(hKey, NULL, PLAINTEXTKEYBLOB, 0, g_pbKeyBlob_Exfil, &g_dwKeyBlobLen_Exfil)){
+//             MyHandleError(TEXT("[FAIL] Exfil key data failed \n"), GetLastError());
+//             fprintf(fd, "[FAIL] no-alloca Exfil key data failed \n");
+//         }
     
-        fprintf(fd, "\t no-alloca ExfilKeyData = ");
-        for (int i = 0 ; i < g_dwKeyBlobLen_Exfil ; i++) {
-           fprintf(fd, "%02x", g_pbKeyBlob_Exfil[i]);
-        }
-        fprintf(fd, "\n");
+//         fprintf(fd, "\t no-alloca ExfilKeyData = ");
+//         for (int i = 0 ; i < g_dwKeyBlobLen_Exfil ; i++) {
+//            fprintf(fd, "%02x", g_pbKeyBlob_Exfil[i]);
+//         }
+//         fprintf(fd, "\n");
     
-        recursive = FALSE;
-    }
+//         recursive = FALSE;
+//     }
 
-    fclose(fd);
-    return Real_CryptDestroyKey(hKey);
-}
+//     fclose(fd);
+//     return Real_CryptDestroyKey(hKey);
+// }
 
 
 BOOL WINAPI Fake_CryptEncrypt(HCRYPTKEY hKey, HCRYPTHASH hHash, BOOL Final, DWORD dwFlags, BYTE* pbData,
@@ -598,17 +599,25 @@ INT APIENTRY DllMain(HMODULE hModule, DWORD Reason, LPVOID lpReserved) {
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
-        DetourAttach(&(PVOID&)Real_CryptEncrypt, Fake_CryptDestroyKey);
+
         DetourAttach(&(PVOID&)Real_CryptEncrypt, Fake_CryptEncrypt);
         DetourAttach(&(PVOID&)Real_CryptDecrypt, Fake_CryptDecrypt);
+
         DetourAttach(&(PVOID&)Real_CryptAcquireContext, Fake_CryptAcquireContext);
         DetourAttach(&(PVOID&)Real_CryptSetKeyParam, Fake_CryptSetKeyParam);
+        // TODO(eugenek): Disabled because the function needs logic to check the key wasn't already
+        // exported, else it keeps crashing. Somebody should add this logic.
+        // DetourAttach(&(PVOID&)Real_CryptDestroyKey, Fake_CryptDestroyKey);
+
         DetourAttach(&(PVOID&)Real_CryptCreateHash, Fake_CryptCreateHash);
         DetourAttach(&(PVOID&)Real_CryptHashData, Fake_CryptHashData);
+
         DetourAttach(&(PVOID&)Real_CryptDeriveKey, Fake_CryptDeriveKey);
         DetourAttach(&(PVOID&)Real_CryptGenKey, Fake_CryptGenKey);
+
         DetourAttach(&(PVOID&)Real_CryptImportKey, Fake_CryptImportKey);
         DetourAttach(&(PVOID&)Real_CryptExportKey, Fake_CryptExportKey);
+
         DetourAttach(&(PVOID&)Real_CryptGenRandom, Fake_CryptGenRandom);
 
         //DetourAttach(&(PVOID&)Real_ReadFile, Fake_ReadFile);
@@ -627,17 +636,25 @@ INT APIENTRY DllMain(HMODULE hModule, DWORD Reason, LPVOID lpReserved) {
     case DLL_PROCESS_DETACH:
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
-        DetourDetach(&(PVOID&)Real_CryptEncrypt, Fake_CryptDestroyKey);
+
         DetourDetach(&(PVOID&)Real_CryptEncrypt, Fake_CryptEncrypt);
         DetourDetach(&(PVOID&)Real_CryptDecrypt, Fake_CryptDecrypt);
+
         DetourDetach(&(PVOID&)Real_CryptAcquireContext, Fake_CryptAcquireContext);
         DetourDetach(&(PVOID&)Real_CryptSetKeyParam, Fake_CryptSetKeyParam);
+        // TODO(eugenek): Disabled because the function needs logic to check the key wasn't already
+        // exported, else it keeps crashing. Somebody should add this logic.
+        // DetourDetach(&(PVOID&)Real_CryptDestroyKey, Fake_CryptDestroyKey);
+
         DetourDetach(&(PVOID&)Real_CryptCreateHash, Fake_CryptCreateHash);
         DetourDetach(&(PVOID&)Real_CryptHashData, Fake_CryptHashData);
+
         DetourDetach(&(PVOID&)Real_CryptDeriveKey, Fake_CryptDeriveKey);
         DetourDetach(&(PVOID&)Real_CryptGenKey, Fake_CryptGenKey);
+
         DetourDetach(&(PVOID&)Real_CryptImportKey, Fake_CryptImportKey);
         DetourDetach(&(PVOID&)Real_CryptExportKey, Fake_CryptExportKey);
+
         DetourDetach(&(PVOID&)Real_CryptGenRandom, Fake_CryptGenRandom);
 
         //DetourDetach(&(PVOID&)Real_ReadFile, Fake_ReadFile);
