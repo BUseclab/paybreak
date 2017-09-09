@@ -1,6 +1,15 @@
 PayBreak
 ========
-Defense against cryptographic ransomware
+Defense against cryptographic ransomware.
+
+Presented at ACM ASIACCS 2017. Paper can be found here: [PayBreak](https://eugenekolo.com/static/paybreak.pdf)
+
+```
+Kolodenker, Eugene, William Koch, Gianluca Stringhini, and Manuel Egele.
+"PayBreak: Defense against cryptographic ransomware." In Proceedings of the 2017
+ACM Asia Conference on Computer and Communications Security (ASIACCS). ACM
+(Association for Computing Machinery), 2017.
+```
 
 Build
 -----
