@@ -11,6 +11,8 @@ ACM Asia Conference on Computer and Communications Security (ASIACCS). ACM
 (Association for Computing Machinery), 2017.
 ```
 
+![PayBreak CSAW Poster](images/PayBreak-CSAW-Poster.png)
+
 Build
 -----
 ```
